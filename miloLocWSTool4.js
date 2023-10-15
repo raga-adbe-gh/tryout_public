@@ -93,7 +93,7 @@ class MiloLocWSTool {
             if (!sResp.ok) {
                 this.wsLog.info(`Error while getting fragment details ${sResp.status} for ${reqUrl}`);
             } else {
-                this.claimTask(tid);
+                await this.claimTask(tid);
                 this.wsLog.info(`Updating task ${c1} / ${tids.length}`);
                 let sRespJson = await sResp.json();
                 for(var c2=0; c2 < sRespJson.items?.length; c2++) {
@@ -122,7 +122,7 @@ class MiloLocWSTool {
                     }
                 };
                 // Mark Task Complete
-                this.taskComplete(tid);
+                await this.taskComplete(tid);
             }
         };
         this.wsLog.info('Updated segments');
