@@ -94,7 +94,7 @@ class MiloLocWSTool {
                 this.wsLog.info(`Error while getting fragment details ${sResp.status} for ${reqUrl}`);
             } else {
                 this.claimTask(tid);
-                this.wsLog.info(`Updating task ${c1} / ${tids.length} segments`);
+                this.wsLog.info(`Updating task ${c1} / ${tids.length}`);
                 let sRespJson = await sResp.json();
                 for(var c2=0; c2 < sRespJson.items?.length; c2++) {
                     let i = sRespJson.items[c2];
