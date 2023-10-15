@@ -2,6 +2,8 @@ class MiloLocWSTool {
     wsApi=`/ws-api/v2`;
     transitionId = 124246;
     token = 0;
+    projectsLimit=10000;
+    segmentsLimit=10000;
 
     constructor(token,{ host } = {}) {
         this.token = token;
@@ -29,7 +31,7 @@ class MiloLocWSTool {
             this.wsLog.info('Too Shortname');
             return projs;
         }
-        let reqUrl = `${this.wsApi}/projectGroups/search?fields=id,name,projects(id,name)offset=0&limit=100&viewMode=5&token=${this.token}`;
+        let reqUrl = `${this.wsApi}/projectGroups/search?fields=id,name,projects(id,name)offset=0&limit=${this.projectsLimit}&viewMode=5&token=${this.token}`;
         this.wsLog.info(reqUrl);
         let pgResp = await fetch(reqUrl, {
             method: "POST",
@@ -99,7 +101,7 @@ class MiloLocWSTool {
                 for(var c2=0; c2 < sRespJson.items?.length; c2++) {
                     let i = sRespJson.items[c2];
                     if (i.type == "TEXT") {
-                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
+                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}&limit=${this.segmentsLimit}`;
                         console.debug(`Updating segments ${c2} / ${sRespJson.items.length} for ${i.tag}`);
                         i.status = [
                             "MANUAL_TRANSLATION",
