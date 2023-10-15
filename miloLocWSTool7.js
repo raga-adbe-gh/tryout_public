@@ -42,7 +42,7 @@ class MiloLocWSTool {
             this.wsLog.info(`Error while getting projects ${pgResp.status}`);
         } else {
             let pgRespJson = await pgResp.json();
-            this.wsLog.debug(`Projects: JSON.stringify(pgRespJson)`);
+            this.wsLog.debug(`Projects: ${JSON.stringify(pgRespJson)}`);
             pgRespJson?.items.forEach((e) => {
                 e.projects?.forEach((p) => {
                     projs.push(p.id);
@@ -90,7 +90,7 @@ class MiloLocWSTool {
     async copyTargetAndComplete(tids) {
         for(var c1=0; c1 < tids.length; c1++) {
             let tid = tids[c1];
-            let reqUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
+            let reqUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}&limit=${this.segmentsLimit}`;
             let sResp = await fetch(reqUrl);
             if (!sResp.ok) {
                 this.wsLog.info(`Error while getting fragment details ${sResp.status} for ${reqUrl}`);
@@ -101,7 +101,7 @@ class MiloLocWSTool {
                 for(var c2=0; c2 < sRespJson.items?.length; c2++) {
                     let i = sRespJson.items[c2];
                     if (i.type == "TEXT") {
-                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}&limit=${this.segmentsLimit}`;
+                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
                         console.debug(`Updating segments ${c2} / ${sRespJson.items.length} for ${i.tag}`);
                         i.status = [
                             "MANUAL_TRANSLATION",
