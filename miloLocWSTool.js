@@ -2,6 +2,8 @@ class MiloLocWSTool {
     wsApi=`/ws-api/v2`;
     transitionId = 124246;
     token = 0;
+    projectsLimit=10000;
+    segmentsLimit=10000;
 
     constructor(token,{ host } = {}) {
         this.token = token;
@@ -29,7 +31,7 @@ class MiloLocWSTool {
             this.wsLog.info('Too Shortname');
             return projs;
         }
-        let reqUrl = `${this.wsApi}/projectGroups/search?fields=id,name,projects(id,name)offset=0&limit=100&viewMode=5&token=${this.token}`;
+        let reqUrl = `${this.wsApi}/projectGroups/search?fields=id,name,projects(id,name)offset=0&limit=${this.projectsLimit}&viewMode=5&token=${this.token}`;
         this.wsLog.info(reqUrl);
         let pgResp = await fetch(reqUrl, {
             method: "POST",
@@ -75,7 +77,7 @@ class MiloLocWSTool {
 
     async claimTask(tid) {
         var cids = []
-        cids.push({id:tids[c1]});
+        cids.push({id:tid});
         let reqUrl = `${this.wsApi}/tasks/claim?token=${this.token}`;
         let sResp = await fetch(reqUrl, {
             method: "POST",
@@ -93,13 +95,13 @@ class MiloLocWSTool {
             if (!sResp.ok) {
                 this.wsLog.info(`Error while getting fragment details ${sResp.status} for ${reqUrl}`);
             } else {
-                this.claimTask(tid);
+                await this.claimTask(tid);
                 this.wsLog.info(`Updating task ${c1} / ${tids.length}`);
                 let sRespJson = await sResp.json();
                 for(var c2=0; c2 < sRespJson.items?.length; c2++) {
                     let i = sRespJson.items[c2];
                     if (i.type == "TEXT") {
-                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
+                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}&limit=${this.segmentsLimit}`;
                         console.debug(`Updating segments ${c2} / ${sRespJson.items.length} for ${i.tag}`);
                         i.status = [
                             "MANUAL_TRANSLATION",
@@ -122,7 +124,7 @@ class MiloLocWSTool {
                     }
                 };
                 // Mark Task Complete
-                this.taskComplete(tid);
+                await this.taskComplete(tid);
             }
         };
         this.wsLog.info('Updated segments');
