@@ -15,7 +15,7 @@ class MiloLocWSTool {
             console.log(args);
         },
         debug: (...args) => {
-            // console.log(args);
+            false && console.log(args);
         }    
     }
 
@@ -72,11 +72,9 @@ class MiloLocWSTool {
         return taskIds;
     }
 
-    async claimTasks(tids) {
+    async claimTask(tid) {
         var cids = []
-        for(var c1=0; c1 < tids.length; c1++) {
-            cids.push({id:tids[c1]});
-        }
+        cids.push({id:tid});
         let reqUrl = `${this.wsApi}/tasks/claim?token=${this.token}`;
         let sResp = await fetch(reqUrl, {
             method: "POST",
@@ -94,6 +92,7 @@ class MiloLocWSTool {
             if (!sResp.ok) {
                 this.wsLog.info(`Error while getting fragment details ${sResp.status} for ${reqUrl}`);
             } else {
+                this.claimTask(tid);
                 this.wsLog.info(`Updating task ${c1} / ${tids.length} segments`);
                 let sRespJson = await sResp.json();
                 for(var c2=0; c2 < sRespJson.items?.length; c2++) {
@@ -143,7 +142,6 @@ class MiloLocWSTool {
     async wsUpdate(pname) {
         var pids = await this.getProjects(pname);
         var tids = await this.getProjectDetails(pids);
-        await this.claimTasks(tids);
         await this.copyTargetAndComplete(tids);
     }
 }
