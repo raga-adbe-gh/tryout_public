@@ -3,7 +3,7 @@ class MiloLocWSTool {
     transitionId = 124246;
     token = 0;
 
-    constructor(host, token) {
+    constructor(token) {
         this.token = token;
     }
 
