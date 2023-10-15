@@ -75,7 +75,7 @@ class MiloLocWSTool {
 
     async claimTask(tid) {
         var cids = []
-        cids.push({id:tids[c1]});
+        cids.push({id:tid});
         let reqUrl = `${this.wsApi}/tasks/claim?token=${this.token}`;
         let sResp = await fetch(reqUrl, {
             method: "POST",
