@@ -141,7 +141,6 @@ class MiloLocWSTool {
         var pids = await this.getProjects(pname);
         var tids = await this.getProjectDetails(pids);
         await this.claimTasks(tids);
-        await this.updateSegments(tids);
         await this.copyTargetAndComplete(tids);
     }
 }
