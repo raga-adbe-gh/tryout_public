@@ -1,11 +1,10 @@
 class MiloLocWSTool {
-    wsApi="";
+    wsApi=`https://${window.location.origin}/ws-api/v2`;
     transitionId = 124246;
     token = 0;
 
     constructor(host, token) {
         this.token = token;
-        this.claimTaskswsApi=`https://${host}/ws-api/v2`;
     }
 
     wsLog = {
