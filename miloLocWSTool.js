@@ -15,7 +15,7 @@ class MiloLocWSTool {
             console.log(args);
         },
         debug: (...args) => {
-            false && console.log(args);
+            console.log(args);
         }    
     }
 
@@ -40,6 +40,7 @@ class MiloLocWSTool {
             this.wsLog.info(`Error while getting projects ${pgResp.status}`);
         } else {
             let pgRespJson = await pgResp.json();
+            this.wsLog.debug(`Projects: JSON.stringify(pgRespJson)`);
             pgRespJson?.items.forEach((e) => {
                 e.projects?.forEach((p) => {
                     projs.push(p.id);
@@ -74,7 +75,7 @@ class MiloLocWSTool {
 
     async claimTask(tid) {
         var cids = []
-        cids.push({id:tid});
+        cids.push({id:tids[c1]});
         let reqUrl = `${this.wsApi}/tasks/claim?token=${this.token}`;
         let sResp = await fetch(reqUrl, {
             method: "POST",
