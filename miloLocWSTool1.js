@@ -15,7 +15,7 @@ class MiloLocWSTool {
             console.log(args);
         },
         debug: (...args) => {
-            // console.log(args);
+            false && console.log(args);
         }    
     }
 
