@@ -1,5 +1,5 @@
 class MiloLocWSTool {
-    wsApi=`https://${window.location.origin}/ws-api/v2`;
+    wsApi=`/ws-api/v2`;
     transitionId = 124246;
     token = 0;
 
