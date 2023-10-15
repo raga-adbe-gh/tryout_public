@@ -3,8 +3,11 @@ class MiloLocWSTool {
     transitionId = 124246;
     token = 0;
 
-    constructor(host, token) {
+    constructor(token,{ host }) {
         this.token = token;
+        if (host) {
+            this.wsApi=`https://${host}/ws-api/v2`;
+        }
     }
 
     wsLog = {
