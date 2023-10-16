@@ -1,10 +1,10 @@
 class MiloLocWSTool {
     wsApi=`/ws-api/v2`;
-    transitionId = 124246;
+    defTransitionId = 124246;
     token = 0;
     projectsLimit=10000;
     segmentsLimit=10000;
-    numParallel = 4;
+    numParallel = 8;
 
     constructor(token,{ host } = {}) {
         this.token = token;
@@ -77,6 +77,7 @@ class MiloLocWSTool {
     }
 
     async getCompleteTransitionId(tid) {
+        let transitionId = this.defTransitionId;
         let reqUrl = `${this.wsApi}/tasks/${tid}?token=${this.token}`;
         let sResp = await fetch(reqUrl);
         if (!sResp.ok) {
@@ -87,9 +88,10 @@ class MiloLocWSTool {
             const stepId = taskDtls.currentTaskStep?.id;
             const translateOpts = taskDtls.steps?.find((e) => e.id === stepId);
             const completeTransition = translateOpts?.workflowTransitions.find((e) => e.text === 'Complete');
-            this.transitionId = completeTransition?.id;
-            this.wsLog.info(`Complete Transition Id - ${this.transitionId}`);
+            transitionId = completeTransition?.id;
+            this.wsLog.info(`Complete Transition Id - ${transitionId}`);
         }
+        return transitionId;
     }
 
     async claimTask(tid) {
@@ -102,6 +104,26 @@ class MiloLocWSTool {
             body: JSON.stringify(cids)
         });
         this.wsLog.info(`Claim tasks ${JSON.stringify(cids)} is ${sResp.ok} ${sResp.status}`);
+    }
+
+    async updateFragments(tid, i) {
+        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
+        console.debug(`Updating segments for ${i.tag}`);
+        i.status = [
+            "MANUAL_TRANSLATION",
+            "PENDING",
+            "SEGMENT_CHANGED_BY_HUMAN_CURRENT"
+        ];
+        i.target = i.source;
+        this.wsLog.info(i);
+        return fetch(updUrl,{
+            method: "POST",
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify([i])
+        })
+        .then(e => e.ok ? e.json() : e)
+        .then(e => this.wsLog.debug(`Update results ${i.tag} and ${e.status}`))
+        .catch(err => this.wsLog.info(`Unable failed update for ${i.tag} ${err?.status} ${err?.message} `))
     }
 
     async copyTargetAndComplete(tids) {
@@ -118,30 +140,15 @@ class MiloLocWSTool {
                 await this.claimTask(tid);
                 this.wsLog.info(`Updating task ${c1} / ${tids.length}`);
                 let sRespJson = await sResp.json();
-                for(var c2=0; c2 < sRespJson.items?.length; c2++) {
-                    let i = sRespJson.items[c2];
-                    if (i.type == "TEXT") {
-                        let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
-                        console.debug(`Updating segments ${c2} / ${sRespJson.items.length} for ${i.tag}`);
-                        i.status = [
-                            "MANUAL_TRANSLATION",
-                            "PENDING",
-                            "SEGMENT_CHANGED_BY_HUMAN_CURRENT"
-                        ];
-                        i.target = i.source;
-                        this.wsLog.info(i);
-                        let sUpdResp = await fetch(updUrl,{
-                            method: "POST",
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify([i])
-                        });
-                        if (!sUpdResp.ok) {
-                            this.wsLog.info(`Unable failed update for ${i.tag}`);
-                        } else {
-                            let sUpdRespJson = await sUpdResp.json();
-                            this.wsLog.debug(`Updated ${i.tag} and ${sUpdRespJson.status}`);
-                        }
+                const segments = sRespJson.items?.filter((i) => i.type == "TEXT");
+                const numSegs = segments?.length;
+                let segArr = [];
+                while (segments.length) {
+                    let promiseArr = [];
+                    for(var ctr = 0; ctr < this.numParallel && segments.length; ctr++) {
+                        promiseArr.push(this.updateFragments(tid, segments.pop()));
                     }
+                    await Promise.all(promiseArr);
                 };
                 // Mark Task Complete
                 await this.taskComplete(tid);
@@ -152,7 +159,8 @@ class MiloLocWSTool {
 
     async taskComplete(tid) {
         var cids = []
-        cids.push({id:tid, "transitionId": this.transitionId, comment: 'Complete tasks from automated api.'});
+        const transitionId = await this.getCompleteTransitionId(tid);
+        cids.push({id:tid, "transitionId": transitionId || this.defTransitionId, comment: 'Complete tasks from automated api.'});
         let reqUrl = `${this.wsApi}/tasks/complete?token=${this.token}`;
         let sResp = await fetch(reqUrl, {
             method: "POST",
