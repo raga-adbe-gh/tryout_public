@@ -4,6 +4,7 @@ class MiloLocWSTool {
     token = 0;
     projectsLimit=10000;
     segmentsLimit=10000;
+    numParallel = 4;
 
     constructor(token,{ host } = {}) {
         this.token = token;
@@ -75,6 +76,22 @@ class MiloLocWSTool {
         return taskIds;
     }
 
+    async getCompleteTransitionId(tid) {
+        let reqUrl = `${this.wsApi}/tasks/${tid}?token=${this.token}`;
+        let sResp = await fetch(reqUrl);
+        if (!sResp.ok) {
+            this.wsLog.info(`Error while getting task details ${sResp.status} for ${reqUrl}`);
+        } else {
+            const taskDtls = await sResp.json();
+            this.wsLog.info(`Current step ${JSON.stringify(taskDtls.currentTaskStep)}`);
+            const stepId = taskDtls.currentTaskStep?.id;
+            const translateOpts = taskDtls.steps?.find((e) => e.id === stepId);
+            const completeTransition = translateOpts?.workflowTransitions.find((e) => e.text === 'Complete');
+            this.transitionId = completeTransition?.id;
+            this.wsLog.info(`Complete Transition Id - ${this.transitionId}`);
+        }
+    }
+
     async claimTask(tid) {
         var cids = []
         cids.push({id:tid});
@@ -88,6 +105,9 @@ class MiloLocWSTool {
     }
 
     async copyTargetAndComplete(tids) {
+        if (tids && tids.length) {
+            await this.getCompleteTransitionId(tids[0]);
+        }
         for(var c1=0; c1 < tids.length; c1++) {
             let tid = tids[c1];
             let reqUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}&limit=${this.segmentsLimit}`;
