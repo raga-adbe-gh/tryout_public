@@ -8,7 +8,7 @@
 ## Usage - Localization WorldServer Markcomplete Tool
 
 ```
-Get the Token - Login to https://ws-stage.corp.adobe.com. In the network filter for "check" call 
+Get the Token - Login to https://ws-stage...... In the network filter for "check" call 
 (wait for few mins for it appear). In the request header get the value of key "Token". e.g 20......34
 ```
 ```
