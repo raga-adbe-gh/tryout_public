@@ -4,7 +4,9 @@ class MiloLocWSTool {
     token = 0;
     projectsLimit=10000;
     segmentsLimit=10000;
+    segGroup = 5;
     numParallel = 8;
+
 
     constructor(token,{ host } = {}) {
         this.token = token;
@@ -106,24 +108,24 @@ class MiloLocWSTool {
         this.wsLog.info(`Claim tasks ${JSON.stringify(cids)} is ${sResp.ok} ${sResp.status}`);
     }
 
-    async updateFragments(tid, i) {
+    async updateFragments(tid, iArr) {
         let updUrl = `${this.wsApi}/segments?token=${this.token}&taskId=${tid}`;
-        console.debug(`Updating segments for ${i.tag}`);
-        i.status = [
-            "MANUAL_TRANSLATION",
-            "PENDING",
-            "SEGMENT_CHANGED_BY_HUMAN_CURRENT"
-        ];
-        i.target = i.source;
-        this.wsLog.info(i);
+        iArr.forEach ((i) => {
+            i.status = [
+                "MANUAL_TRANSLATION",
+                "PENDING",
+                "SEGMENT_CHANGED_BY_HUMAN_CURRENT"
+            ];
+            i.target = i.source;
+        });
         return fetch(updUrl,{
             method: "POST",
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify([i])
+            body: JSON.stringify(iArr)
         })
         .then(e => e.ok ? e.json() : e)
-        .then(e => this.wsLog.debug(`Update results ${i.tag} and ${e.status}`))
-        .catch(err => this.wsLog.info(`Unable failed update for ${i.tag} ${err?.status} ${err?.message} `))
+        .then(e => this.wsLog.debug(`Update results ${iArr} and ${e.status}`))
+        .catch(err => this.wsLog.info(`Unable failed update for ${iArr} ${err?.status} ${err?.message} `))
     }
 
     async copyTargetAndComplete(tids) {
@@ -140,13 +142,24 @@ class MiloLocWSTool {
                 await this.claimTask(tid);
                 this.wsLog.info(`Updating task ${c1} / ${tids.length}`);
                 let sRespJson = await sResp.json();
-                const segments = sRespJson.items?.filter((i) => i.type == "TEXT");
+                this.wsLog.info(sRespJson.items);
+                const segments = sRespJson.items?.filter((i) => i.type == "TEXT" && !i.target && i.source);
                 const numSegs = segments?.length;
+                this.wsLog.info(`Segments to process ${numSegs}`);
                 let segArr = [];
-                while (segments.length) {
+                while (segments?.length) {
+                    let arr = [];
+                    for(var ctr = 0; ctr < this.segGroup && segments.length; ctr++) {
+                        arr.push(segments.pop());
+                    }
+                    segArr.push(arr);
+                }
+                while (segArr?.length) {
                     let promiseArr = [];
-                    for(var ctr = 0; ctr < this.numParallel && segments.length; ctr++) {
-                        promiseArr.push(this.updateFragments(tid, segments.pop()));
+                    for(var ctr = 0; ctr < this.numParallel && segArr.length; ctr++) {
+                        var segs = segArr.pop();
+                        this.wsLog.info(`Updating segments ${JSON.stringify(segs)}`);
+                        promiseArr.push(this.updateFragments(tid, segs));
                     }
                     await Promise.all(promiseArr);
                 };
@@ -161,7 +174,7 @@ class MiloLocWSTool {
         var cids = []
         const transitionId = await this.getCompleteTransitionId(tid);
         cids.push({id:tid, "transitionId": transitionId || this.defTransitionId, comment: 'Complete tasks from automated api.'});
-        let reqUrl = `${this.wsApi}/tasks/complete?token=${this.token}`;
+        let reqUrl = `${this.wsApi}/tasks/complete?token=${this.token}&recalculateAutoError=false`;
         let sResp = await fetch(reqUrl, {
             method: "POST",
             headers: {'Content-Type': 'application/json'},
@@ -171,8 +184,11 @@ class MiloLocWSTool {
     }
 
     async wsUpdate(pname) {
+        console.time('wsUpdate')
         var pids = await this.getProjects(pname);
         var tids = await this.getProjectDetails(pids);
         await this.copyTargetAndComplete(tids);
+        var endTime = performance.now()
+        console.timeEnd('wsUpdate')
     }
 }
